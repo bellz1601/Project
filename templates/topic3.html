@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}หัวข้อ 3{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-xl font-semibold">หัวข้อ 3 — สแกนแท็ก RFID แบรนด์ไหนก็ได้</h2>
+    <button id="btn-clear" class="px-3 py-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700">
+      ล้างรายการ
+    </button>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-100 text-slate-700">
+          <tr>
+            <th class="px-3 py-2 text-left">เวลา (UTC)</th>
+            <th class="px-3 py-2 text-left">EPC</th>
+            <th class="px-3 py-2 text-left">Antenna</th>
+            <th class="px-3 py-2 text-left">RSSI</th>
+            <th class="px-3 py-2 text-left">Raw</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="p-4 text-center text-slate-500 text-sm hidden">
+      ยังไม่มีข้อมูลแท็ก เข้ามา…
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const tbody = document.getElementById('rows');
+  const empty = document.getElementById('empty');
+  const btnClear = document.getElementById('btn-clear');
+
+  let latestTs = "";
+  const seen = new Set();
+
+  function render(items) {
+    if (!items || items.length === 0) {
+      if (tbody.children.length === 0) empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    items.forEach(it => {
+      const key = (it.epc || '') + '|' + (it.ts || '');
+      if (seen.has(key)) return;
+      seen.add(key);
+      const tr = document.createElement('tr');
+      tr.className = "border-t border-slate-100";
+      tr.innerHTML = `
+        <td class="px-3 py-2 text-slate-600">${it.ts || ''}</td>
+        <td class="px-3 py-2 font-mono">${it.epc || ''}</td>
+        <td class="px-3 py-2">${it.antenna || ''}</td>
+        <td class="px-3 py-2">${it.rssi ?? ''}</td>
+        <td class="px-3 py-2 text-slate-500 break-all">${it.raw || ''}</td>`;
+      if (tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
+      else tbody.appendChild(tr);
+    });
+  }
+
+  async function pull() {
+    try {
+      const url = latestTs ? `/api/tags?since=${encodeURIComponent(latestTs)}` : `/api/tags`;
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data && data.items) render(data.items);
+      if (data && data.latest_ts) latestTs = data.latest_ts;
+    } catch (e) { console.warn('poll error:', e); }
+  }
+  pull(); setInterval(pull, 1000);
+
+  btnClear.addEventListener('click', async () => {
+    try {
+      await fetch('/api/tags/clear', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'same-origin'
+      });
+      latestTs = ""; seen.clear(); tbody.innerHTML = ""; empty.classList.add('hidden'); pull();
+    } catch (e) { console.warn('clear error:', e); }
+  });
+})();
+</script>
+{% endblock %}

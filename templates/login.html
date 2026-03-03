@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}เข้าสู่ระบบ{% endblock %}
+{% block content %}
+<form method="post" class="bg-white rounded-2xl shadow p-6 space-y-4 max-w-xl">
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm mb-1">ชื่อผู้ใช้</label>
+      <input name="username" class="w-full border rounded-xl p-2" required>
+    </div>
+    <div>
+      <label class="block text-sm mb-1">รหัสผ่าน</label>
+      <input type="password" name="password" class="w-full border rounded-xl p-2" required>
+    </div>
+  </div>
+  <div class="flex items-center justify-between">
+    <a href="{{ url_for('register') }}" class="text-sm text-slate-600 hover:underline">สมัครสมาชิก</a>
+    <button class="px-4 py-2 rounded-xl bg-slate-900 text-white">เข้าสู่ระบบ</button>
+  </div>
+</form>
+{% endblock %}
